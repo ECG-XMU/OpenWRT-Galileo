@@ -1,0 +1,3 @@
+BOARDNAME:=Galileo
+FEATURES:=ext4 pci usb
+LINUX_VERSION:=3.10.49

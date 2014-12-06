@@ -1,0 +1,565 @@
+From xxxx Mon Sep 17 00:00:00 2001
+From: Josef Ahmad <josef.ahmad@linux.intel.com>
+Date: Tue, 13 Aug 2013 10:22:38 +0100
+Subject: [PATCH 17/21] Quark I2C
+
+---
+ drivers/i2c/busses/Kconfig                 |   19 +++---
+ drivers/i2c/busses/i2c-designware-core.c   |   99 ++++++++++++++++++++++++++--
+ drivers/i2c/busses/i2c-designware-core.h   |   12 ++++
+ drivers/i2c/busses/i2c-designware-pcidrv.c |   18 +++--
+ 4 files changed, 123 insertions(+), 25 deletions(-)
+
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+index bdca511..010e4fd 100644
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -106,18 +106,13 @@
+ 	    Panther Point (PCH)
+ 	    Lynx Point (PCH)
+ 	    Lynx Point-LP (PCH)
+-	    Avoton (SOC)
+-	    Wellsburg (PCH)
+-	    Coleto Creek (PCH)
+-	    Wildcat Point-LP (PCH)
+-	    BayTrail (SOC)
+ 
+ 	  This driver can also be built as a module.  If so, the module
+ 	  will be called i2c-i801.
+ 
+ config I2C_ISCH
+ 	tristate "Intel SCH SMBus 1.0"
+-	depends on PCI && GENERIC_HARDIRQS
++	depends on PCI
+ 	select LPC_SCH
+ 	help
+ 	  Say Y here if you want to use SMBus controller on the Intel SCH
+@@ -126,16 +121,6 @@
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called i2c-isch.
+ 
+-config I2C_ISMT
+-	tristate "Intel iSMT SMBus Controller"
+-	depends on PCI && X86
+-	help
+-	  If you say yes to this option, support will be included for the Intel
+-	  iSMT SMBus host controller interface.
+-
+-	  This driver can also be built as a module.  If so, the module will be
+-	  called i2c-ismt.
+-
+ config I2C_PIIX4
+ 	tristate "Intel PIIX4 and compatible (ATI/AMD/Serverworks/Broadcom/SMSC)"
+ 	depends on PCI
+@@ -153,7 +138,6 @@
+ 	    ATI SB700/SP5100
+ 	    ATI SB800
+ 	    AMD Hudson-2
+-	    AMD CZ
+ 	    Serverworks OSB4
+ 	    Serverworks CSB5
+ 	    Serverworks CSB6
+@@ -202,11 +186,11 @@
+ 	  will be called i2c-sis5595.
+ 
+ config I2C_SIS630
+-	tristate "SiS 630/730/964"
++	tristate "SiS 630/730"
+ 	depends on PCI
+ 	help
+ 	  If you say yes to this option, support will be included for the
+-	  SiS630, SiS730 and SiS964 SMBus (a subset of I2C) interface.
++	  SiS630 and SiS730 SMBus (a subset of I2C) interface.
+ 
+ 	  This driver can also be built as a module.  If so, the module
+ 	  will be called i2c-sis630.
+@@ -335,18 +319,6 @@
+ 	  This driver can also be built as a module.  If so, the module
+ 	  will be called i2c-au1550.
+ 
+-config I2C_BCM2835
+-	tristate "Broadcom BCM2835 I2C controller"
+-	depends on ARCH_BCM2835
+-	help
+-	  If you say yes to this option, support will be included for the
+-	  BCM2835 I2C controller.
+-
+-	  If you don't know what to do here, say N.
+-
+-	  This support is also available as a module.  If so, the module
+-	  will be called i2c-bcm2835.
+-
+ config I2C_BLACKFIN_TWI
+ 	tristate "Blackfin TWI I2C support"
+ 	depends on BLACKFIN
+@@ -367,7 +339,7 @@
+ 
+ config I2C_CBUS_GPIO
+ 	tristate "CBUS I2C driver"
+-	depends on GPIOLIB
++	depends on GENERIC_GPIO
+ 	help
+ 	  Support for CBUS access using I2C API. Mostly relevant for Nokia
+ 	  Internet Tablets (770, N800 and N810).
+@@ -414,7 +386,7 @@
+ 
+ config I2C_DESIGNWARE_PCI
+ 	tristate "Synopsys DesignWare PCI"
+-	depends on PCI
++	depends on PCI && !INTEL_QUARK_X1000_SOC
+ 	select I2C_DESIGNWARE_CORE
+ 	help
+ 	  If you say yes to this option, support will be included for the
+@@ -440,7 +412,7 @@
+ 
+ config I2C_GPIO
+ 	tristate "GPIO-based bitbanging I2C"
+-	depends on GPIOLIB
++	depends on GENERIC_GPIO
+ 	select I2C_ALGOBIT
+ 	help
+ 	  This is a very simple bitbanging I2C driver utilizing the
+@@ -547,7 +519,6 @@
+ 
+ config I2C_OCORES
+ 	tristate "OpenCores I2C Controller"
+-	depends on GENERIC_HARDIRQS
+ 	help
+ 	  If you say yes to this option, support will be included for the
+ 	  OpenCores I2C controller. For details see
+@@ -782,7 +753,7 @@
+ 
+ config I2C_PARPORT
+ 	tristate "Parallel port adapter"
+-	depends on PARPORT && GENERIC_HARDIRQS
++	depends on PARPORT
+ 	select I2C_ALGOBIT
+ 	select I2C_SMBUS
+ 	help
+@@ -807,7 +778,6 @@
+ 
+ config I2C_PARPORT_LIGHT
+ 	tristate "Parallel port adapter (light)"
+-	depends on GENERIC_HARDIRQS
+ 	select I2C_ALGOBIT
+ 	select I2C_SMBUS
+ 	help
+diff --git a/drivers/i2c/busses/i2c-designware-core.c b/drivers/i2c/busses/i2c-designware-core.c
+index f5258c2..2a2d1c9 100644
+--- a/drivers/i2c/busses/i2c-designware-core.c
++++ b/drivers/i2c/busses/i2c-designware-core.c
+@@ -68,7 +68,6 @@
+ #define DW_IC_TXFLR		0x74
+ #define DW_IC_RXFLR		0x78
+ #define DW_IC_TX_ABRT_SOURCE	0x80
+-#define DW_IC_ENABLE_STATUS	0x9c
+ #define DW_IC_COMP_PARAM_1	0xf4
+ #define DW_IC_COMP_TYPE		0xfc
+ #define DW_IC_COMP_TYPE_VALUE	0x44570140
+@@ -165,6 +164,29 @@
+ 		"lost arbitration",
+ };
+ 
++/*
++ * Bitmask for struct i2c_dw_data_cmd's `cmd' field.
++ * - DW_IC_CMD_READ:  read/~write operation
++ * - DW_IC_CMD_STOP:  stop condition generation (only for devices requiring
++ *   explicit transaction termination)
++ * - DW_IC_CMD_RESTART:  (re)start condition generation (only for devices
++ *   requiring explicit transaction termination)
++ */
++#define DW_IC_CMD_READ			0x01
++#define DW_IC_CMD_STOP			0x02
++#define DW_IC_CMD_RESTART		0x04
++
++/*
++ * Define the IC_DATA_CMD format.
++ */
++static union i2c_dw_data_cmd {
++	struct fields {
++		u8 data;
++		u8 cmd;
++	} fields;
++	u16 value;
++} data_cmd;
++
+ u32 dw_readl(struct dw_i2c_dev *dev, int offset)
+ {
+ 	u32 value;
+@@ -249,27 +271,6 @@
+ 	return ((ic_clk * (tLOW + tf) + 5000) / 10000) - 1 + offset;
+ }
+ 
+-static void __i2c_dw_enable(struct dw_i2c_dev *dev, bool enable)
+-{
+-	int timeout = 100;
+-
+-	do {
+-		dw_writel(dev, enable, DW_IC_ENABLE);
+-		if ((dw_readl(dev, DW_IC_ENABLE_STATUS) & 1) == enable)
+-			return;
+-
+-		/*
+-		 * Wait 10 times the signaling period of the highest I2C
+-		 * transfer supported by the driver (for 400KHz this is
+-		 * 25us) as described in the DesignWare I2C databook.
+-		 */
+-		usleep_range(25, 250);
+-	} while (timeout--);
+-
+-	dev_warn(dev->dev, "timeout in %sabling adapter\n",
+-		 enable ? "en" : "dis");
+-}
+-
+ /**
+  * i2c_dw_init() - initialize the designware i2c master hardware
+  * @dev: device private data
+@@ -300,7 +301,7 @@
+ 	}
+ 
+ 	/* Disable the adapter */
+-	__i2c_dw_enable(dev, false);
++	dw_writel(dev, 0, DW_IC_ENABLE);
+ 
+ 	/* set standard and fast speed deviders for high/low periods */
+ 
+@@ -355,7 +356,7 @@
+ 			return -ETIMEDOUT;
+ 		}
+ 		timeout--;
+-		usleep_range(1000, 1100);
++		mdelay(1);
+ 	}
+ 
+ 	return 0;
+@@ -366,8 +367,11 @@
+ 	struct i2c_msg *msgs = dev->msgs;
+ 	u32 ic_con;
+ 
++	/* Disable interrupts */
++	i2c_dw_disable_int(dev);
++
+ 	/* Disable the adapter */
+-	__i2c_dw_enable(dev, false);
++	dw_writel(dev, 0, DW_IC_ENABLE);
+ 
+ 	/* set the slave (target) address */
+ 	dw_writel(dev, msgs[dev->msg_write_idx].addr, DW_IC_TAR);
+@@ -380,14 +384,10 @@
+ 		ic_con &= ~DW_IC_CON_10BITADDR_MASTER;
+ 	dw_writel(dev, ic_con, DW_IC_CON);
+ 
+-	/* enforce disabled interrupts (due to HW issues) */
+-	i2c_dw_disable_int(dev);
+-
+ 	/* Enable the adapter */
+-	__i2c_dw_enable(dev, true);
++	dw_writel(dev, 1, DW_IC_ENABLE);
+ 
+-	/* Clear and enable interrupts */
+-	i2c_dw_clear_int(dev);
++	/* Enable interrupts */
+ 	dw_writel(dev, DW_IC_INTR_DEFAULT_MASK, DW_IC_INTR_MASK);
+ }
+ 
+@@ -406,6 +406,7 @@
+ 	u32 addr = msgs[dev->msg_write_idx].addr;
+ 	u32 buf_len = dev->tx_buf_len;
+ 	u8 *buf = dev->tx_buf;
++	int segment_start = 0;
+ 
+ 	intr_mask = DW_IC_INTR_DEFAULT_MASK;
+ 
+@@ -429,39 +430,65 @@
+ 			break;
+ 		}
+ 
++		segment_start = 0;
+ 		if (!(dev->status & STATUS_WRITE_IN_PROGRESS)) {
+ 			/* new i2c_msg */
+ 			buf = msgs[dev->msg_write_idx].buf;
+ 			buf_len = msgs[dev->msg_write_idx].len;
++			segment_start = 1;
+ 		}
+ 
+ 		tx_limit = dev->tx_fifo_depth - dw_readl(dev, DW_IC_TXFLR);
+ 		rx_limit = dev->rx_fifo_depth - dw_readl(dev, DW_IC_RXFLR);
+ 
+-		while (buf_len > 0 && tx_limit > 0 && rx_limit > 0) {
+-			u32 cmd = 0;
++		/*
++		 * The maximum number of read requests that can be put into TX
++		 * FIFO depends on the number read operations already pending
++		 * in RX FIFO + the number of outstanding read operations still
++		 * queued in the TX FIFO.
++		 * This prevents RX FIFO overrun.
++		 */
++		rx_limit -= dev->rx_outstanding;
+ 
+-			/*
+-			 * If IC_EMPTYFIFO_HOLD_MASTER_EN is set we must
+-			 * manually set the stop bit. However, it cannot be
+-			 * detected from the registers so we set it always
+-			 * when writing/reading the last byte.
+-			 */
+-			if (dev->msg_write_idx == dev->msgs_num - 1 &&
+-			    buf_len == 1)
+-				cmd |= BIT(9);
++		while (buf_len > 0 && tx_limit > 0 && rx_limit > 0) {
++			data_cmd.fields.data = 0x00;
++			data_cmd.fields.cmd = 0x00;
+ 
+ 			if (msgs[dev->msg_write_idx].flags & I2C_M_RD) {
+-
+-				/* avoid rx buffer overrun */
+-				if (rx_limit - dev->rx_outstanding <= 0)
+-					break;
+-
+-				dw_writel(dev, cmd | 0x100, DW_IC_DATA_CMD);
++				/* Master-receiver */
++				data_cmd.fields.cmd = DW_IC_CMD_READ;
+ 				rx_limit--;
+ 				dev->rx_outstanding++;
+-			} else
+-				dw_writel(dev, cmd | *buf++, DW_IC_DATA_CMD);
++			} else {
++				/* Master-transmitter */
++				data_cmd.fields.data = *buf;
++				buf++;
++			}
++
++			if (1 == dev->explicit_stop
++			    && 1 == segment_start) {
++				/*
++				 * First byte of a transaction segment for a
++				 * device requiring explicit transaction
++				 * termination: generate (re)start symbol.
++				 */
++				segment_start = 0;
++				data_cmd.fields.cmd |= DW_IC_CMD_RESTART;
++			}
++
++			if (1 == dev->explicit_stop
++			    && dev->msg_write_idx == dev->msgs_num - 1
++			    && 1 == buf_len) {
++				/*
++				 * Last byte of last transction segment for a
++				 * device requiring explicit transaction
++				 * termination: generate stop symbol.
++				 */
++				data_cmd.fields.cmd |= DW_IC_CMD_STOP;
++			}
++
++			dw_writel(dev, data_cmd.value, DW_IC_DATA_CMD);
++
+ 			tx_limit--; buf_len--;
+ 		}
+ 
+@@ -600,7 +627,7 @@
+ 	/* no error */
+ 	if (likely(!dev->cmd_err)) {
+ 		/* Disable the adapter */
+-		__i2c_dw_enable(dev, false);
++		dw_writel(dev, 0, DW_IC_ENABLE);
+ 		ret = num;
+ 		goto done;
+ 	}
+@@ -613,8 +640,7 @@
+ 	ret = -EIO;
+ 
+ done:
+-	pm_runtime_mark_last_busy(dev->dev);
+-	pm_runtime_put_autosuspend(dev->dev);
++	pm_runtime_put(dev->dev);
+ 	mutex_unlock(&dev->lock);
+ 
+ 	return ret;
+@@ -673,8 +699,6 @@
+ 		dw_readl(dev, DW_IC_CLR_RX_DONE);
+ 	if (stat & DW_IC_INTR_ACTIVITY)
+ 		dw_readl(dev, DW_IC_CLR_ACTIVITY);
+-	if (stat & DW_IC_INTR_STOP_DET)
+-		dw_readl(dev, DW_IC_CLR_STOP_DET);
+ 	if (stat & DW_IC_INTR_START_DET)
+ 		dw_readl(dev, DW_IC_CLR_START_DET);
+ 	if (stat & DW_IC_INTR_GEN_CALL)
+@@ -725,8 +749,21 @@
+ 	 * the current transmit status.
+ 	 */
+ 
++	/*
++	 * Process stop condition after the last transaction segment is
++	 * transmitted (and received if appropriate).
++	 */
++	if (dev->msgs_num == dev->msg_write_idx
++		&& (DW_IC_INTR_STOP_DET & dw_readl(dev, DW_IC_INTR_STAT))
++		&& 0 == dw_readl(dev, DW_IC_TXFLR)
++		&& 0 == dw_readl(dev, DW_IC_RXFLR)
++		&& 0 == dev->rx_outstanding) {
++			dw_readl(dev, DW_IC_CLR_STOP_DET);
++			complete(&dev->cmd_complete);
++	}
++
+ tx_aborted:
+-	if ((stat & (DW_IC_INTR_TX_ABRT | DW_IC_INTR_STOP_DET)) || dev->msg_err)
++	if ((stat & (DW_IC_INTR_TX_ABRT)) || dev->msg_err)
+ 		complete(&dev->cmd_complete);
+ 
+ 	return IRQ_HANDLED;
+@@ -736,7 +773,7 @@
+ void i2c_dw_enable(struct dw_i2c_dev *dev)
+ {
+        /* Enable the adapter */
+-	__i2c_dw_enable(dev, true);
++	dw_writel(dev, 1, DW_IC_ENABLE);
+ }
+ EXPORT_SYMBOL_GPL(i2c_dw_enable);
+ 
+@@ -749,7 +786,7 @@
+ void i2c_dw_disable(struct dw_i2c_dev *dev)
+ {
+ 	/* Disable controller */
+-	__i2c_dw_enable(dev, false);
++	dw_writel(dev, 0, DW_IC_ENABLE);
+ 
+ 	/* Disable all interupts */
+ 	dw_writel(dev, 0, DW_IC_INTR_MASK);
+diff --git a/drivers/i2c/busses/i2c-designware-core.h b/drivers/i2c/busses/i2c-designware-core.h
+index 9c1840e..691aff8 100644
+--- a/drivers/i2c/busses/i2c-designware-core.h
++++ b/drivers/i2c/busses/i2c-designware-core.h
+@@ -34,6 +34,14 @@
+ #define DW_IC_CON_RESTART_EN		0x20
+ #define DW_IC_CON_SLAVE_DISABLE		0x40
+ 
++struct dw_pci_controller {
++	u32 bus_num;
++	u32 bus_cfg;
++	u32 tx_fifo_depth;
++	u32 rx_fifo_depth;
++	u32 clk_khz;
++	u8  explicit_stop;
++};
+ 
+ /**
+  * struct dw_i2c_dev - private i2c-designware data
+@@ -60,7 +68,8 @@
+  * @adapter: i2c subsystem adapter node
+  * @tx_fifo_depth: depth of the hardware tx fifo
+  * @rx_fifo_depth: depth of the hardware rx fifo
+- * @rx_outstanding: current master-rx elements in tx fifo
++ * @rx_outstanding: current outstanding master-receiver bytes in TX FIFO
++ * @explicit_stop: set to 1 if hardware requires explicit stop bit transmission
+  */
+ struct dw_i2c_dev {
+ 	struct device		*dev;
+@@ -90,6 +99,7 @@
+ 	unsigned int		tx_fifo_depth;
+ 	unsigned int		rx_fifo_depth;
+ 	int			rx_outstanding;
++	u8			explicit_stop;
+ };
+ 
+ #define ACCESS_SWAP		0x00000001
+diff --git a/drivers/i2c/busses/i2c-designware-pcidrv.c b/drivers/i2c/busses/i2c-designware-pcidrv.c
+index 6add851..62ad7dc 100644
+--- a/drivers/i2c/busses/i2c-designware-pcidrv.c
++++ b/drivers/i2c/busses/i2c-designware-pcidrv.c
+@@ -56,14 +56,6 @@ enum dw_pci_ctl_id_t {
+ 	medfield_5,
+ };
+ 
+-struct dw_pci_controller {
+-	u32 bus_num;
+-	u32 bus_cfg;
+-	u32 tx_fifo_depth;
+-	u32 rx_fifo_depth;
+-	u32 clk_khz;
+-};
+-
+ #define INTEL_MID_STD_CFG  (DW_IC_CON_MASTER |			\
+ 				DW_IC_CON_SLAVE_DISABLE |	\
+ 				DW_IC_CON_RESTART_EN)
+@@ -75,6 +67,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ 	[moorestown_1] = {
+ 		.bus_num     = 1,
+@@ -82,6 +75,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ 	[moorestown_2] = {
+ 		.bus_num     = 2,
+@@ -89,6 +83,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ 	[medfield_0] = {
+ 		.bus_num     = 0,
+@@ -96,6 +91,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ 	[medfield_1] = {
+ 		.bus_num     = 1,
+@@ -103,6 +99,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ 	[medfield_2] = {
+ 		.bus_num     = 2,
+@@ -110,6 +107,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ 	[medfield_3] = {
+ 		.bus_num     = 3,
+@@ -117,6 +115,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ 	[medfield_4] = {
+ 		.bus_num     = 4,
+@@ -124,6 +123,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ 	[medfield_5] = {
+ 		.bus_num     = 5,
+@@ -131,6 +131,7 @@ static struct  dw_pci_controller  dw_pci_controllers[] = {
+ 		.tx_fifo_depth = 32,
+ 		.rx_fifo_depth = 32,
+ 		.clk_khz      = 25000,
++		.explicit_stop = 0,
+ 	},
+ };
+ static struct i2c_algorithm i2c_dw_algo = {
+@@ -282,6 +283,7 @@ const struct pci_device_id *id)
+ 
+ 	dev->tx_fifo_depth = controller->tx_fifo_depth;
+ 	dev->rx_fifo_depth = controller->rx_fifo_depth;
++	dev->explicit_stop = controller->explicit_stop;
+ 	r = i2c_dw_init(dev);
+ 	if (r)
+ 		goto err_iounmap;
+-- 
+1.7.4.1
+
