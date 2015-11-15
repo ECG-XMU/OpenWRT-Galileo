@@ -1,0 +1,17 @@
+#!/bin/sh /etc/rc.common
+
+START=11
+
+SERVICE_DAEMONIZE=1
+SERVICE_WRITE_PID=1
+
+start() {
+	echo "start ubus"
+	service_start /sbin/ubusd
+	
+}
+
+
+stop() {
+	service_stop /sbin/ubusd
+}

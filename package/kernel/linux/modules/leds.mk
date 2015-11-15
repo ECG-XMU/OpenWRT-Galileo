@@ -7,10 +7,26 @@
 
 LEDS_MENU:=LED modules
 
+define KernelPackage/led-class
+  SUBMENU:=$(LEDS_MENU)
+  TITLE:= LED class support
+  DEPENDS:= @GPIO_SUPPORT
+  KCONFIG:= CONFIG_LEDS_CLASS
+  FILES:=$(LINUX_DIR)/drivers/leds/led-class.ko
+  AUTOLOAD:=$(call AutoProbe,led-class)
+endef
+
+define KernelPackage/led-class/description
+ Kernel module for LED class support
+endef
+
+$(eval $(call KernelPackage,led-class))
+
+
 define KernelPackage/leds-gpio
   SUBMENU:=$(LEDS_MENU)
   TITLE:=GPIO LED support
-  DEPENDS:= @GPIO_SUPPORT
+  DEPENDS:= @GPIO_SUPPORT +kmod-led-class
   KCONFIG:=CONFIG_LEDS_GPIO
   FILES:=$(LINUX_DIR)/drivers/leds/leds-gpio.ko
   AUTOLOAD:=$(call AutoLoad,60,leds-gpio,1)

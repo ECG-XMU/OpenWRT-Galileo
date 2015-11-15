@@ -276,16 +276,19 @@ define KernelPackage/fs-nfs
   KCONFIG:= \
 	CONFIG_NFS_FS \
 	CONFIG_NFS_USE_LEGACY_DNS=n \
+	CONFIG_NFS_ACL_SUPPORT \
 	CONFIG_NFS_USE_NEW_IDMAPPER=n
 ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,3.6.0)),1)
   FILES:= \
 	$(LINUX_DIR)/fs/nfs/nfs.ko \
-	$(LINUX_DIR)/fs/nfs/nfsv3.ko
+	$(LINUX_DIR)/fs/nfs/nfsv3.ko \
+	$(LINUX_DIR)/fs/nfs_common/nfs_acl.ko
 else
   FILES:= \
-	$(LINUX_DIR)/fs/nfs/nfs.ko
+	$(LINUX_DIR)/fs/nfs/nfs.ko \
+	$(LINUX_DIR)/fs/nfs_common/nfs_acl.ko
 endif
-  AUTOLOAD:=$(call AutoLoad,40,nfs nfsv3)
+  AUTOLOAD:=$(call AutoLoad,40,nfs nfsv3 nfs_acl)
 endef
 
 define KernelPackage/fs-nfs/description
@@ -335,9 +338,13 @@ define KernelPackage/fs-nfsd
   DEPENDS:=+kmod-fs-nfs-common +kmod-fs-exportfs
   KCONFIG:= \
 	CONFIG_NFSD \
+	CONFIG_NFS_ACL_SUPPORT \
+	CONFIG_SUNRPC_GSS \
 	CONFIG_NFSD_FAULT_INJECTION=n
-  FILES:=$(LINUX_DIR)/fs/nfsd/nfsd.ko
-  AUTOLOAD:=$(call AutoLoad,40,nfsd)
+  FILES:=$(LINUX_DIR)/fs/nfsd/nfsd.ko \
+  $(LINUX_DIR)/fs/nfs_common/nfs_acl.ko \
+  $(LINUX_DIR)/net/sunrpc/auth_gss/auth_rpcgss.ko 
+  AUTOLOAD:=$(call AutoLoad,40,nfsd nfs_acl auth_rpcgss)
 endef
 
 define KernelPackage/fs-nfsd/description

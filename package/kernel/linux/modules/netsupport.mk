@@ -26,6 +26,21 @@ endef
 $(eval $(call KernelPackage,atm))
 
 
+define KernelPackage/stmmac
+  SUBMENU:=$(NETWORK_SUPPORT_MENU)
+  TITLE:=STMicroelectronics 10/100/1000 Ethernet driver
+  KCONFIG:=CONFIG_STMMAC_ETH
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/stmicro/stmmac/stmmac.ko
+  AUTOLOAD:=$(call AutoProbe,stmmac)
+endef
+
+define KernelPackage/stmmac/description
+ Kernel module for STMicroelectronics 10/100/1000 Ethernet driver
+endef
+
+$(eval $(call KernelPackage,stmmac))
+
+
 define KernelPackage/atmtcp
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=ATM over TCP
@@ -132,10 +147,12 @@ $(eval $(call KernelPackage,stp))
 define KernelPackage/8021q
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=802.1Q VLAN support
+  DEPENDS:=+kmod-llc +kmod-stp
   KCONFIG:=CONFIG_VLAN_8021Q \
 		CONFIG_VLAN_8021Q_GVRP=n
-  FILES:=$(LINUX_DIR)/net/8021q/8021q.ko
-  AUTOLOAD:=$(call AutoLoad,12,8021q)
+  FILES:=$(LINUX_DIR)/net/8021q/8021q.ko \
+		$(LINUX_DIR)/net/802/garp.ko 
+  AUTOLOAD:=$(call AutoProbe,8021q garp)
 endef
 
 define KernelPackage/8021q/description

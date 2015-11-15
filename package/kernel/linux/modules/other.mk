@@ -304,16 +304,17 @@ $(eval $(call KernelPackage,mmc))
 define KernelPackage/sdhci
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Secure Digital Host Controller Interface support
-  DEPENDS:=+kmod-mmc
+  DEPENDS:=kmod-led-class kmod-mmc
   KCONFIG:= \
 	CONFIG_MMC_SDHCI \
-	CONFIG_MMC_SDHCI_PLTFM \
-	CONFIG_MMC_SDHCI_PCI=n
+	CONFIG_MMC_SDHCI_PCI \
+	CONFIG_MMC_SDHCI_PLTFM
   FILES:= \
 	$(LINUX_DIR)/drivers/mmc/host/sdhci.ko \
+	$(LINUX_DIR)/drivers/mmc/host/sdhci-pci.ko \
 	$(LINUX_DIR)/drivers/mmc/host/sdhci-pltfm.ko
 
-  AUTOLOAD:=$(call AutoProbe,sdhci sdhci-pltfm,1)
+  AUTOLOAD:=$(call AutoProbe,sdhci sdhci-pci sdhci-pltfm)
 endef
 
 define KernelPackage/sdhci/description

@@ -808,7 +808,7 @@ endef
 
 define KernelPackage/iwlagn
   $(call KernelPackage/mac80211/Default)
-  DEPENDS:= +kmod-mac80211 @PCI_SUPPORT +@DRIVER_11N_SUPPORT
+  DEPENDS:= +kmod-mac80211 +kmod-led-class  @PCI_SUPPORT +@DRIVER_11N_SUPPORT
   TITLE:=Intel AGN Wireless support
   FILES:= \
 	$(PKG_BUILD_DIR)/drivers/net/wireless/iwlwifi/iwlwifi.ko \
@@ -933,7 +933,7 @@ endef
 
 define KernelPackage/iwl-legacy
   $(call KernelPackage/mac80211/Default)
-  DEPENDS:= +kmod-mac80211 @PCI_SUPPORT
+  DEPENDS:= +kmod-mac80211 +kmod-led-class @PCI_SUPPORT
   TITLE:=Intel legacy Wireless support
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/iwlegacy/iwlegacy.ko
   AUTOLOAD:=$(call AutoProbe,iwlegacy)
