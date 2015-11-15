@@ -32,7 +32,7 @@ Attention:
 
 （2） the root filesystem  "openwrt-x86-galileo-rootfs.cpio.gz"  is in the directory of "bin/x86"
 
-（3）"boot" and "grub.efi" are from the intel galileo web (http://www.intel.com/support/galileo/sb/CS-035101.htm),download the "SD-Card Linux Image".
+（3）"boot" and "grub.efi" are from the intel galileo web http://www.intel.com/support/galileo/sb/CS-035101.htm , download the "SD-Card Linux Image".
 And you should modify the "grub.conf" as follow:
 
 
