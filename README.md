@@ -5,7 +5,8 @@ OpenWRT for Intel Galileo Board
 
 OpenWRT version: git-svn-id: svn://svn.openwrt.org/openwrt/trunk@42607
 
-How to Build
+How to Build?
+
 running "make V=99 " to build the OpenWRT firmware for Intel Galileo.
 When build finished, the kernel image and cross-compiler can be found in the following directory:
 
@@ -15,13 +16,17 @@ The cross-compiler: " /../staging_dir/toolchain-i386_i486_gcc-4.8-linaro_uClibc-
 
 ======================
 
-How to work
+How to work?
+
 you only have on your tf card the following files:
 Root folder:
 
 /boot/grub/grub.conf
+
 /bzImage
+
 /grub.efi
+
 /openwrt-x86-galileo-rootfs.cpio.gz
 
 ===================
