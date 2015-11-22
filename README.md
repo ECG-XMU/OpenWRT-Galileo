@@ -18,7 +18,7 @@ The cross-compiler: " /../staging_dir/toolchain-i386_i486_gcc-4.8-linaro_uClibc-
 
 How to work?
 
-you only have on your tf card the following files:
+put the following files to your tf card:
 Root folder:
 
 /boot/grub/grub.conf
@@ -31,7 +31,7 @@ Root folder:
 
 ===================
 
-Attention:
+Notes:
 
 （1）”bzImage”  is in the directory of "build_dir/target-i386_i486_uClibc-0.9.33.2/linux-x86_galileo"
 
