@@ -19,7 +19,7 @@ The cross-compiler: " /../staging_dir/toolchain-i386_i486_gcc-4.8-linaro_uClibc-
 How to work?
 
 put the following files to your tf card:
-Root folder:
+
 
 /boot/grub/grub.conf
 
